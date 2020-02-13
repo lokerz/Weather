@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import CoreLocation
 import Alamofire
 
 class MainViewController: UIViewController {
@@ -14,7 +15,6 @@ class MainViewController: UIViewController {
     var currentCity : City?
     var isUsingCurrentLocation = true
     var gradientLayer = CAGradientLayer()
-    var weatherManager = WeatherManager.instance
     
     @IBOutlet weak var weatherImageOutlet: UIImageView!
     @IBOutlet weak var weatherCountryLabelOutlet: UILabel!
@@ -47,7 +47,6 @@ class MainViewController: UIViewController {
         locationManager.allowAccess()
         locationManager.checkCurrentLocation()
         locationManager.delegate = self
-        weatherManager.delegate = self
     }
     
     func setupLoadingIndicator(){
@@ -72,10 +71,10 @@ class MainViewController: UIViewController {
         loadingIndicatorOutlet.isHidden = false
         if isUsingCurrentLocation {
             if let coord = locationManager.currentLocation?.coordinate {
-                weatherManager.getWeather(lat: coord.latitude, long: coord.longitude)
+                getWeather(coordinate : coord)
             }
         } else {
-            weatherManager.getWeather(id: currentCity!.id)
+            getWeather(id: currentCity!.id)
         }
     }
     
@@ -88,21 +87,19 @@ class MainViewController: UIViewController {
         refreshButtonAction(self)
     }
     
-}
-
-extension MainViewController : LocationDelegate{
-    func loadLocation() {
-        if let coord = locationManager.currentLocation?.coordinate {
-//            weatherManager.getWeather(lat: coord.latitude, long: coord.longitude)
-            weatherManager.getWeather(lat: coord.latitude, long: coord.longitude) { (weather) in
-                self.loadWeather(weather: weather)
-            }
+    func getWeather(coordinate : CLLocationCoordinate2D){
+        WeatherManager().getWeather(lat: coordinate.latitude, long: coordinate.longitude){
+            (weather) in self.setWeather(weather: weather)
         }
     }
-}
-
-extension MainViewController : WeatherDelegate{
-    func loadWeather(weather : Weather) {
+    
+    func getWeather(id : String){
+        WeatherManager().getWeather(id: id){
+            (weather) in self.setWeather(weather: weather)
+        }
+    }
+    
+    func setWeather(weather : Weather) {
         navigationItem.title = weather.cityName
         weatherImageOutlet.weatherImage(iconName: weather.iconName!)
         weatherStatusLabelOutlet.text = weather.weatherName
@@ -120,5 +117,10 @@ extension MainViewController : WeatherDelegate{
     }
 }
 
-
+extension MainViewController : LocationDelegate{
+    func loadLocation() {
+        guard let coord = locationManager.currentLocation?.coordinate else {return}
+        getWeather(coordinate: coord)
+    }
+}
 
