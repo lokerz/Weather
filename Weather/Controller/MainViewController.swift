@@ -14,6 +14,7 @@ class MainViewController: UIViewController {
     var currentCity : City?
     var isUsingCurrentLocation = true
     var gradientLayer = CAGradientLayer()
+    var weatherManager = WeatherManager.instance
     
     @IBOutlet weak var weatherImageOutlet: UIImageView!
     @IBOutlet weak var weatherCountryLabelOutlet: UILabel!
@@ -92,24 +93,27 @@ class MainViewController: UIViewController {
 extension MainViewController : LocationDelegate{
     func loadLocation() {
         if let coord = locationManager.currentLocation?.coordinate {
-            weatherManager.getWeather(lat: coord.latitude, long: coord.longitude)
+//            weatherManager.getWeather(lat: coord.latitude, long: coord.longitude)
+            weatherManager.getWeather(lat: coord.latitude, long: coord.longitude) { (weather) in
+                self.loadWeather(weather: weather)
+            }
         }
     }
 }
 
 extension MainViewController : WeatherDelegate{
-    func loadWeather() {
-        navigationItem.title = weatherManager.weather.cityName
-        weatherImageOutlet.weatherImage(iconName: weatherManager.weather.iconName!)
-        weatherStatusLabelOutlet.text = weatherManager.weather.weatherName
-        weatherTemperatureLabelOutlet.text = String(weatherManager.weather.temperature!)
+    func loadWeather(weather : Weather) {
+        navigationItem.title = weather.cityName
+        weatherImageOutlet.weatherImage(iconName: weather.iconName!)
+        weatherStatusLabelOutlet.text = weather.weatherName
+        weatherTemperatureLabelOutlet.text = String(weather.temperature!)
         if !isUsingCurrentLocation {
             weatherCountryLabelOutlet.text = currentCity!.province + ", " + currentCity!.country
         } else {
             weatherCountryLabelOutlet.text = locationManager.currentLocation!.detail.province + ", " + locationManager.currentLocation!.detail.country
-            DataManager().saveData(city: locationManager.currentLocation!.detail, weather: weatherManager.weather)
+            DataManager().saveData(city: locationManager.currentLocation!.detail, weather: weather)
         }
-        setupBackgroundColor(time: weatherManager.weather.iconName!)
+        setupBackgroundColor(time: weather.iconName!)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             self.loadingIndicatorOutlet.isHidden = true
         }
